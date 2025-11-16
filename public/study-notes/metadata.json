@@ -1,0 +1,5 @@
+{
+  "name": "Study Notes",
+  "description": "A web application to access and manage PDF study notes for all subjects, featuring filtering, search, and multiple view layouts.",
+  "requestFramePermissions": []
+}
