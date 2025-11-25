@@ -1,51 +1,74 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const Classroom = require("../models/Classroom");
 const Subject = require("../models/Subject");
+const Classroom = require("../models/Classroom");
+
 
 async function run() {
   await mongoose.connect(process.env.MONGODB_URI);
-  console.log("Connected to database\n");
+  console.log("DB connected.");
 
-  // 1. Define classrooms to create
-  const classroomsData = [
-    { name: "Class 10A", uniqueCode: "CLASS10A" },
-    { name: "Class 10B", uniqueCode: "CLASS10B" },
-  ];
-
-  // 2. Insert classrooms (clean insert)
-  await Classroom.deleteMany({});
-  const classrooms = await Classroom.insertMany(classroomsData);
-  console.log("Classrooms created:", classrooms);
-
-  // Map classroom names to their IDs for easy reference
-  const classMap = {};
-  classrooms.forEach((c) => (classMap[c.name] = c._id));
-
-  // 3. Define subjects for each classroom
-  const subjectsData = [
-    { name: "Math", uniqueCode: "MATH101A", classroomName: "Class 10A" },
-    { name: "Physics", uniqueCode: "PHY101A", classroomName: "Class 10A" },
-    { name: "Chemistry", uniqueCode: "CHEM101A", classroomName: "Class 10A" },
-
-    { name: "Math", uniqueCode: "MATH101B", classroomName: "Class 10B" },
-    { name: "Biology", uniqueCode: "BIO101B", classroomName: "Class 10B" },
-  ];
-
-  // 4. Insert subjects
+  // DELETE OLD SUBJECTS
   await Subject.deleteMany({});
-  const subjectsToInsert = subjectsData.map((sub) => ({
-    name: sub.name,
-    uniqueCode: sub.uniqueCode,
-    classroomId: classMap[sub.classroomName],
-  }));
+  console.log("Cleared Subjects.");
 
-  const subjects = await Subject.insertMany(subjectsToInsert);
-  console.log("Subjects created:", subjects);
+  // LOAD ALL CLASSROOMS
+  const classrooms = await Classroom.find({});
+  if (classrooms.length === 0) {
+    console.error("No classrooms found.");
+    process.exit(1);
+  }
 
-  console.log("\n✔ SEEDING COMPLETE");
-  mongoose.connection.close();
+  // Map division letter -> classroomId
+  // FE DIV-A 2025 → uniqueCode = FEDA25 → divisionLetter = A
+  const divisionMap = {};
+  classrooms.forEach((c) => {
+    // Extract division letter from classroom uniqueCode
+    const unique = c.uniqueCode; // e.g. "FEDA25"
+    const divLetter = unique[3]; // 4th character = division (A/B/C/D)
+    divisionMap[divLetter] = c._id;
+  });
+
+  // SUBJECT DATA YOU WANT
+  const subjects = [
+    { name: "Math", uniqueCode: "MATH101A" },
+    { name: "Math", uniqueCode: "MATH101B" },
+    { name: "Math", uniqueCode: "MATH101AB" },
+    { name: "Physics", uniqueCode: "PHY202AC" },
+    { name: "Chemistry", uniqueCode: "CHEM303D" },
+  ];
+
+  const insertList = [];
+
+  for (const s of subjects) {
+    const code = s.uniqueCode;
+    const divisionLetters = code.replace(/[^A-Z]/g, ""); // extract letters
+
+    // GET ONLY THE DIVISION PART (the tail)
+    // Math101AB → AB
+    const divPart = divisionLetters.slice(-2).match(/[A-D]+/)[0];
+
+    const classIds = [];
+
+    for (const letter of divPart) {
+      const room = divisionMap[letter];
+      if (!room) throw new Error(`No classroom found for division ${letter}`);
+      classIds.push(room);
+    }
+
+    insertList.push({
+      name: s.name,
+      uniqueCode: s.uniqueCode,
+      classroomId: classIds,
+    });
+  }
+
+  // INSERT NEW SUBJECTS
+  await Subject.insertMany(insertList);
+  console.log("Subjects seeded.");
+
+  process.exit(0);
 }
 
 run().catch((err) => {

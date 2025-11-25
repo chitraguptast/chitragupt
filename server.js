@@ -10,9 +10,9 @@ const authRoutes = require("./routes/auth");
 const attendanceRoutes = require("./routes/attendance");
 const teacherRoutes = require("./routes/teacher");
 const studentAuthRoutes = require("./routes/studentAuth");
+const studentDashboardRoutes = require("./routes/studentDashboard");
 
 const app = express();
-
 
 app.use(
   helmet({
@@ -25,21 +25,21 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/notes", require("./routes/notes"));
 
-
 app.use((req, res, next) => {
   console.log("🔥 SERVER GOT REQUEST:", req.method, req.url);
   next();
 });
 
-
 /* === API ROUTES FIRST === */
-// TEACHER AUTH ROUTES
 app.use("/api/teacher/auth", authRoutes);
 
-// STUDENT AUTH ROUTES
+// student login/signup/reset
 app.use("/api/student/auth", studentAuthRoutes);
 
-// OTHER ROUTES
+// 🔥 FIX: mount the dashboard route here
+app.use("/api/student", studentDashboardRoutes);
+
+// other routes
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/teacher", teacherRoutes);
 

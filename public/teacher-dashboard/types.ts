@@ -9,3 +9,17 @@ export interface Student {
   attendanceDays: number;
   totalDays: number;
 }
+
+export interface TeacherProfile {
+  id: string;
+  username: string;
+  prefix: string;
+  name: string;
+  phone: string;
+  college: string;
+  email: string;
+  divisions: string[];
+  subjectCode: string;
+  firstLogin: boolean;
+}
+

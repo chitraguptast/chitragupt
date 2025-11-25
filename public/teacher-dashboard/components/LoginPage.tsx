@@ -2,14 +2,19 @@ import React, { useState } from "react";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 
 interface LoginPageProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (teacherData: any) => void; // MUST MATCH App.tsx
 }
+
+
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [securityQuestion, setSecurityQuestion] = useState("");
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,27 +22,36 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     try {
       const res = await fetch("/api/teacher/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
+      console.log("🔥 TEACHER LOGIN RESPONSE:", data.teacher);
+
 
       if (!res.ok) {
         alert(data.error || "Login failed");
         return;
       }
 
-      // Save token so protected pages can use it
+      // MUST exist now
+      if (!data.teacher) {
+        alert("Server error: no teacher data returned");
+        return;
+      }
+
+      // Save token
       localStorage.setItem("token", data.token);
 
-      onLoginSuccess(); // continue to dashboard
+      // 👉 SEND teacher data to App.tsx
+      onLoginSuccess(data.teacher);
     } catch (err) {
+      console.error(err);
       alert("Server error");
     }
   };
+
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,31 +59,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     try {
       const res = await fetch("/api/teacher/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           password,
           subjectCode: code,
+          email,
+          securityQuestion,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Signup failed");
+        alert(data.message || "Signup failed");
         return;
       }
 
-      alert("Signup successful! Please login now.");
+      alert("Signup successful! Please login.");
 
-      // Reset fields & go to login view
       setMode("login");
       setUsername("");
       setPassword("");
       setCode("");
+      setEmail("");
+      setSecurityQuestion("");
     } catch (err) {
+      console.error(err);
       alert("Server error");
     }
   };
@@ -120,16 +136,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <input
                     type="text"
                     id="username"
-                    name="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                    placeholder="your.username"
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
                   />
                 </div>
+
                 <div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between items-center">
                     <label
                       htmlFor="password"
                       className="block text-sm font-medium text-gray-700"
@@ -139,7 +154,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     <button
                       type="button"
                       onClick={() => setMode("forgot")}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                      className="text-blue-600 text-sm"
                     >
                       Forgot password?
                     </button>
@@ -147,26 +162,26 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <input
                     type="password"
                     id="password"
-                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                    placeholder="••••••••"
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
                   />
                 </div>
+
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full py-2 px-4 bg-blue-600 text-white rounded-md"
                 >
                   Sign In
                 </button>
               </form>
+
               <p className="text-sm text-gray-500 mt-6">
                 Don't have an account?{" "}
                 <button
                   onClick={() => setMode("signup")}
-                  className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                  className="text-blue-600 font-medium"
                 >
                   Sign Up
                 </button>
@@ -185,72 +200,89 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 onSubmit={handleSignupSubmit}
                 className="mt-8 space-y-4 text-left"
               >
+                {/* Username */}
                 <div>
-                  <label
-                    htmlFor="signup-username"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label className="block text-sm font-medium text-gray-700">
                     Username
                   </label>
                   <input
                     type="text"
-                    id="signup-username"
-                    name="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                    placeholder="Choose a username"
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
                   />
                 </div>
+
+                {/* Password */}
                 <div>
-                  <label
-                    htmlFor="signup-password"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label className="block text-sm font-medium text-gray-700">
                     Password
                   </label>
                   <input
                     type="password"
-                    id="signup-password"
-                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                    placeholder="Create a password"
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
                   />
                 </div>
+
+                {/* Email */}
                 <div>
-                  <label
-                    htmlFor="signup-code"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
+                  />
+                </div>
+
+                {/* Security Question */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Security Answer
+                  </label>
+                  <input
+                    type="text"
+                    value={securityQuestion}
+                    onChange={(e) => setSecurityQuestion(e.target.value)}
+                    required
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
+                  />
+                </div>
+
+                {/* Code */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Code
                   </label>
                   <input
                     type="text"
-                    id="signup-code"
-                    name="code"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     required
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                    placeholder="Enter invitation code"
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3"
                   />
                 </div>
+
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full py-2 px-4 bg-blue-600 text-white rounded-md"
                 >
                   Sign Up
                 </button>
               </form>
+
               <p className="text-sm text-gray-500 mt-6">
                 Already have an account?{" "}
                 <button
                   onClick={() => setMode("login")}
-                  className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                  className="text-blue-600 font-medium"
                 >
                   Sign In
                 </button>
@@ -263,8 +295,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           )}
         </div>
       </main>
+
       <footer className="text-center text-gray-400 text-sm">
-        &copy; {new Date().getFullYear()} Chitragupt. All rights reserved.
+        © {new Date().getFullYear()} Chitragupt. All rights reserved.
       </footer>
     </div>
   );

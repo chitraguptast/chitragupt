@@ -1,21 +1,72 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
+  setStudentData: (data: any) => void;
+  openStudentProfileModal: () => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+const LoginPage: React.FC<LoginPageProps> = ({
+  onLoginSuccess,
+  setStudentData,
+  openStudentProfileModal,
+}) => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [rollNumber, setrollNumber] = useState("");
+  const [securityQuestion, setsecurityQuestion] = useState("");
+
+  // State for Roll Number Autocomplete
+  const [isRollDropdownOpen, setIsRollDropdownOpen] = useState(false);
+  const rollDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        rollDropdownRef.current &&
+        !rollDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsRollDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const rollNumberOptions = useMemo(
+    () =>
+      Array.from({ length: 100 }, (_, i) => ({
+        value: String(i + 1),
+        label: `Roll ${i + 1}`,
+      })),
+    []
+  );
+
+  const filteredRollOptions = rollNumberOptions.filter((opt) =>
+    opt.value.includes(rollNumber)
+  );
+
+  const handleRollChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    // Allow only integers
+    if (val === "" || /^\d+$/.test(val)) {
+      setrollNumber(val);
+      setIsRollDropdownOpen(true);
+    }
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const res = await fetch("/api/student/auth/login", {
+      const res = await fetch(`/api/student/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -26,16 +77,46 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Login failed");
+        alert(data.message || "Login failed");
         return;
       }
 
-      // Save token so protected pages can use it
+      // Save auth token
       localStorage.setItem("token", data.token);
 
-      onLoginSuccess(); // continue to dashboard
+      let student = data.student;
+
+      if (!student) {
+        alert("Invalid server response");
+        return;
+      }
+
+      localStorage.setItem("studentId", student._id);
+
+
+      // Clean data
+      student = {
+        ...student,
+        name: student.name?.trim() !== "" ? student.name : student.username,
+        phone: student.phone?.trim() !== "" ? student.phone : "no number",
+        college: student.college || "",
+      };
+
+      // Set student globally
+      setStudentData(student);
+      localStorage.setItem("studentId", student._id);
+
+
+      // first login checks
+      if (student.firstLogin === true) {
+        openStudentProfileModal();
+      }
+
+      // allow navigation
+      onLoginSuccess();
     } catch (err) {
       alert("Server error");
+      console.error(err);
     }
   };
 
@@ -51,6 +132,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         body: JSON.stringify({
           username,
           password,
+          email,
+          rollNumber,
+          securityQuestion,
           uniqueCode: code,
         }),
       });
@@ -58,7 +142,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Signup failed");
+        alert(data.message || "Signup failed");
         return;
       }
 
@@ -68,6 +152,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setMode("login");
       setUsername("");
       setPassword("");
+      setEmail("");
+      setrollNumber("");
+      setsecurityQuestion("");
       setCode("");
     } catch (err) {
       alert("Server error");
@@ -221,6 +308,95 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     placeholder="Create a password"
                   />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="signup-email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Roll Number
+                  </label>
+                  <div className="mt-1 relative" ref={rollDropdownRef}>
+                    <input
+                      type="text"
+                      value={rollNumber}
+                      onChange={(e) => {
+                        const val = e.target.value;
+
+                        // integer only, max 100
+                        if (val === "" || /^\d+$/.test(val)) {
+                          if (val === "" || Number(val) <= 100) {
+                            setrollNumber(val);
+                          }
+                        }
+
+                        setIsRollDropdownOpen(true); // always open on typing
+                      }}
+                      onClick={() => {
+                        // open dropdown on click
+                        setIsRollDropdownOpen(true);
+                      }}
+                      placeholder="Enter roll number"
+                      className="w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    />
+
+                    {isRollDropdownOpen && (
+                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto">
+                        {(rollNumber === ""
+                          ? rollNumberOptions
+                          : filteredRollOptions
+                        ).map((opt) => (
+                          <div
+                            key={opt.value}
+                            onClick={() => {
+                              setrollNumber(opt.value);
+                              setIsRollDropdownOpen(false);
+                            }}
+                            className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+                          >
+                            {opt.value}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-security"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Security Question
+                  </label>
+                  <input
+                    type="text"
+                    id="signup-security"
+                    name="SecurityQuestion"
+                    value={securityQuestion}
+                    onChange={(e) => setsecurityQuestion(e.target.value)}
+                    required
+                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                    placeholder="Who is your favourite animal"
+                  />
+                </div>
+
                 <div>
                   <label
                     htmlFor="signup-code"
@@ -264,8 +440,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
       </main>
       <footer className="text-center text-gray-400 text-sm">
-        &copy; {new Date().getFullYear()} Chitragupt. All rights
-        reserved.
+        &copy; {new Date().getFullYear()} Chitragupt. All rights reserved.
       </footer>
     </div>
   );
