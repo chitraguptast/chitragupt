@@ -20,6 +20,7 @@ export interface TeacherProfile {
   email: string;
   divisions: string[];
   subjectCode: string;
+  subjectName: string;
   firstLogin: boolean;
 }
 

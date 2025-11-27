@@ -17,22 +17,36 @@ const App: React.FC = () => {
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile | null>(
     null
   );
+  React.useEffect(() => {
+    const saved = localStorage.getItem("teacher");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setTeacherProfile(parsed);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
 
   const handleTeacherLogin = (teacherData: TeacherProfile) => {
+    localStorage.setItem("teacher", JSON.stringify(teacherData));
+
     setTeacherProfile(teacherData);
     setIsAuthenticated(true);
 
-    // OPEN PROFILE MODAL IF FIRST LOGIN
     if (teacherData.firstLogin) {
       setIsProfileModalOpen(true);
     }
   };
 
 
+
   const handleLogout = () => {
+    localStorage.removeItem("teacher");
+    localStorage.removeItem("token");
     setIsAuthenticated(false);
     setTeacherProfile(null);
   };
+
 
   const handleSaveProfile = (updatedProfile: TeacherProfile) => {
     setTeacherProfile(updatedProfile);

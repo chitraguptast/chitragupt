@@ -1,55 +1,39 @@
 const mongoose = require("mongoose");
-const Subject = require("../models/Subject"); // fix path if needed
 
-async function resetSubjects() {
+// ⛔ PUT YOUR FULL MONGODB ATLAS CONNECTION STRING HERE:
+const MONGO_URI =
+  "mongodb+srv://Swapnil:swapnilst@chitragupt-databse.p0gguws.mongodb.net/?appName=chitragupt-databse";
+
+async function clearDB() {
   try {
-    // 1. CONNECT TO MONGODB
-    await mongoose.connect(
-      "mongodb+srv://Swapnil:swapnilst@chitragupt-databse.p0gguws.mongodb.net/?appName=chitragupt-databse",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+    console.log("⏳ Connecting to MongoDB...");
+    await mongoose.connect(MONGO_URI);
 
-    console.log("MongoDB Connected");
+    const db = mongoose.connection.db;
+    console.log("🔥 Connected!");
 
-    // CLASSROOM ID YOU PROVIDED
-    const classA = "6924786cb972e73b1788bad9";
+    // Delete students
+    const studentsDeleted = await db.collection("students").deleteMany({});
+    console.log(`🗑️ Students deleted: ${studentsDeleted.deletedCount}`);
 
-    // 2. DELETE OLD SUBJECTS
-    await Subject.deleteMany({});
-    console.log("Old subjects deleted");
+    // Delete attendance
+    const attendanceDeleted = await db.collection("attendances").deleteMany({});
+    console.log(`🗑️ Attendance deleted: ${attendanceDeleted.deletedCount}`);
 
-    // 3. INSERT NEW SUBJECTS
-    const subjects = [
-      { subjectName: "math", uniqueCode: "MATH101A", classroomId: [classA] },
-      {
-        subjectName: "mechanics",
-        uniqueCode: "MECH101A",
-        classroomId: [classA],
-      },
-      {
-        subjectName: "chemistry",
-        uniqueCode: "CHEM101A",
-        classroomId: [classA],
-      },
-      { subjectName: "FPL", uniqueCode: "FPL101A", classroomId: [classA] },
-      {
-        subjectName: "electronics",
-        uniqueCode: "BXE101A",
-        classroomId: [classA],
-      },
-    ];
+    // Reset counters (if any students exist)
+    const countersReset = await db
+      .collection("students")
+      .updateMany({}, { $set: { totalPresent: 0, totalLectures: 0 } });
+    console.log("🔄 Counters reset:", countersReset.modifiedCount);
 
-    await Subject.insertMany(subjects);
-    console.log("New subjects added");
+    await mongoose.disconnect();
+    console.log("✅ Done. Database cleared.");
 
     process.exit(0);
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR:", err);
     process.exit(1);
   }
 }
 
-resetSubjects();
+clearDB();

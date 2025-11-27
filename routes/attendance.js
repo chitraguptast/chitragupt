@@ -1,210 +1,261 @@
 const express = require("express");
 const Attendance = require("../models/Attendance");
+const Holiday = require("../models/Holiday");
 const Student = require("../models/Student");
-const Teacher = require("../models/Teacher");
 
 const router = express.Router();
 
-/**
- * GET STUDENTS FOR A DIVISION
- */
-router.get("/students", async (req, res) => {
-  try {
-    const { division, month, year } = req.query;
+/* ============================================================
+   CHECK HOLIDAY
+============================================================ */
+async function isHoliday(date) {
+  const h = await Holiday.findOne({ date });
+  return !!h;
+}
 
-    if (!division) {
-      return res.status(400).json({ message: "Division required" });
+/* ============================================================
+   MARK / UNMARK HOLIDAY
+============================================================ */
+router.post("/mark-holiday", async (req, res) => {
+  try {
+    const { date, teacherId, pin, action } = req.body;
+
+    if (!date || !teacherId || !pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
+
+    if (pin !== "2005")
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid holiday pin" });
+
+    if (action === "mark") {
+      const holiday = await Holiday.findOneAndUpdate(
+        { date },
+        { markedBy: teacherId },
+        { upsert: true, new: true }
+      );
+
+      // remove all attendance for the entire day
+      await Attendance.deleteMany({ date });
+
+      return res.json({
+        success: true,
+        action: "mark",
+        message: `${date} marked as holiday. Attendance cleared.`,
+        holiday,
+      });
     }
 
-    // Default to current month
-    const now = new Date();
-    const m = month ? Number(month) : now.getMonth(); // 0–11
-    const y = year ? Number(year) : now.getFullYear();
+    if (action === "unmark") {
+      await Holiday.deleteOne({ date });
 
-    // Get students
-    const students = await Student.find({ division }).select(
-      "_id name username email rollNumber totalPresent"
+      return res.json({
+        success: true,
+        action: "unmark",
+        message: `${date} is no longer a holiday.`,
+      });
+    }
+
+    res.status(400).json({ success: false, message: "Invalid action" });
+  } catch (err) {
+    console.error("Holiday error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* ============================================================
+   SAVE ATTENDANCE  (UNIQUE KEY = division + date + lecture)
+============================================================ */
+router.post("/save", async (req, res) => {
+  try {
+    const {
+      division,
+      date,
+      lectureNumber,
+      teacherId,
+      subjectCode,
+      subjectName,
+      students,
+    } = req.body;
+
+    if (!division || !date || !lectureNumber || !teacherId)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
+
+    if (!subjectCode || !subjectName)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing subject fields" });
+
+    if (await isHoliday(date))
+      return res.status(400).json({
+        success: false,
+        message: "This date is marked as holiday. Attendance blocked.",
+      });
+
+    const doc = await Attendance.findOneAndUpdate(
+      { division, date, lectureNumber },
+      {
+        division,
+        date,
+        lectureNumber,
+        teacherId,
+        subjectCode,
+        subjectName,
+        students,
+      },
+      { upsert: true, new: true }
     );
 
-    // Month window
-    const start = new Date(y, m, 1);
-    const end = new Date(y, m + 1, 0);
-    const startStr = start.toISOString().slice(0, 10);
-    const endStr = end.toISOString().slice(0, 10);
-
-    // Attendance for this month only
-    const attendance = await Attendance.find({
-      division,
-      date: { $gte: startStr, $lte: endStr },
-    });
-
-    // Extract all dates attendance was taken
-    const markedDates = new Set(attendance.map((a) => a.date));
-
-    // Count Mon–Fri weekdays for month
-    const weekdays = [];
-    const daysInMonth = end.getDate();
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(y, m, d);
-      const dow = date.getDay(); // 1 = Monday ... 5 = Friday
-
-      if (dow >= 1 && dow <= 5) {
-        weekdays.push(date.toISOString().slice(0, 10));
-      }
-    }
-
-    // Auto holidays = weekdays with no attendance
-    const autoHolidays = weekdays.filter((d) => !markedDates.has(d)).length;
-
-    // Working days = weekdays − auto holidays
-    const workingDays = weekdays.length - autoHolidays;
-
-    // Total possible lectures = working days × 6
-    const totalPossibleLectures = workingDays * 6;
-
-    // Build student results
-    const results = students.map((s) => {
-      const present = s.totalPresent;
-
-      const percentage =
-        totalPossibleLectures > 0
-          ? Math.round((present / totalPossibleLectures) * 100)
-          : 0;
-
-      return {
-        _id: s._id,
-        name: s.name,
-        username: s.username,
-        email: s.email,
-        rollNumber: s.rollNumber,
-        totalPresent: present,
-        totalLectures: totalPossibleLectures,
-        attendancePercentage: percentage,
-      };
-    });
-
-    res.json({ students: results });
+    res.json({ success: true, attendance: doc });
   } catch (err) {
-    console.error("GET /attendance/students error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Save error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 
-
-/**
- * GET ATTENDANCE FOR A SPECIFIC LECTURE
- */
+/* ============================================================
+   FETCH ATTENDANCE FOR ONE LECTURE
+============================================================ */
 router.get("/fetch", async (req, res) => {
   try {
-    const { division, date, lecture, subjectCode } = req.query;
+    const { division, date, lecture } = req.query;
 
-    if (!division || !date || !lecture || !subjectCode) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
+    if (await isHoliday(date))
+      return res.json({ holiday: true, attendance: null });
 
-    const record = await Attendance.findOne({
+    const attendance = await Attendance.findOne({
       division,
       date,
       lectureNumber: Number(lecture),
     });
 
+    res.json({
+      holiday: false,
+      attendance,
+      subjectName: attendance?.subjectName,
+      subjectCode: attendance?.subjectCode,
+    });
 
-
-    res.json({ attendance: record || null });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-/**
- * SAVE ATTENDANCE (UPSERT)
- */
-router.post("/save", async (req, res) => {
+router.get("/fetch-lecture", async (req, res) => {
   try {
-    const { teacherId, division, date, lectureNumber, students } = req.body;
+    const { division, date, lecture } = req.query;
 
-    if (!teacherId || !division || !date || !lectureNumber || !students) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
+    if (!division || !date || !lecture)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
 
-    const teacher = await Teacher.findById(teacherId);
-    if (!teacher) return res.status(400).json({ message: "Teacher not found" });
-
-    // 1️⃣ Check if attendance record already exists
-    const existing = await Attendance.findOne({
+    const attendance = await Attendance.findOne({
       division,
       date,
-      lectureNumber,
-      
+      lectureNumber: Number(lecture),
     });
 
-    // ----------------------------------------
-    // CASE A: UPDATE (Attendance already exists)
-    // ----------------------------------------
-    if (existing) {
-      const oldMap = new Map();
-      existing.students.forEach((s) =>
-        oldMap.set(String(s.studentId), s.status)
-      );
+    if (!attendance) return res.json({ success: false, attendance: null });
 
-      // Update each student totals based on diff
-      for (const entry of students) {
-        const id = String(entry.studentId);
-        const newStatus = entry.status;
-        const oldStatus = oldMap.get(id) || "absent";
-
-        if (oldStatus === "present" && newStatus === "absent") {
-          await Student.findByIdAndUpdate(id, { $inc: { totalPresent: -1 } });
-        }
-
-        if (oldStatus === "absent" && newStatus === "present") {
-          await Student.findByIdAndUpdate(id, { $inc: { totalPresent: +1 } });
-        }
-      }
-
-      existing.students = students;
-      existing.teacherId = teacherId;
-      existing.subjectCode = teacher.subjectCode;
-      existing.subjectName = teacher.subjectName;
-
-      await existing.save();
-      return res.json({ success: true, attendance: existing });
-    }
-
-    // ----------------------------------------
-    // CASE B: CREATE NEW ATTENDANCE RECORD
-    // ----------------------------------------
-
-    // New lecture = affects totalLectures
-    for (const entry of students) {
-      const incPresent = entry.status === "present" ? 1 : 0;
-
-      await Student.findByIdAndUpdate(entry.studentId, {
-        $inc: {
-          totalPresent: incPresent,
-        },
-      });
-    }
-
-    const newRecord = await Attendance.create({
-      teacherId,
-      division,
-      date,
-      lectureNumber,
-      
-      subjectName: teacher.subjectName,
-      students,
-    });
-
-    res.json({ success: true, attendance: newRecord });
+    return res.json({ success: true, attendance });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false });
   }
 });
 
+
+/* ============================================================
+   DELETE ATTENDANCE FOR ONE LECTURE
+============================================================ */
+router.delete("/delete", async (req, res) => {
+  try {
+    const { division, date, lectureNumber } = req.body;
+
+    if (await isHoliday(date))
+      return res
+        .status(400)
+        .json({ success: false, message: "Cannot delete on a holiday" });
+
+    await Attendance.deleteOne({ division, date, lectureNumber });
+
+    res.json({ success: true, message: "Attendance deleted" });
+  } catch (err) {
+    console.error("Delete error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* ============================================================
+   GET STUDENTS FOR A DIVISION
+============================================================ */
+router.get("/students", async (req, res) => {
+  try {
+    const { division } = req.query;
+
+    const list = await Student.find({ division }).select(
+      "name email username rollNumber"
+    );
+
+    res.json({ success: true, students: list });
+  } catch (err) {
+    console.error("Student fetch error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* ============================================================
+   ATTENDANCE SUMMARY (per student)
+   WORKS WITHOUT SUBJECT — now based on actual lecture attendance
+============================================================ */
+router.get("/summary", async (req, res) => {
+  try {
+    const { division } = req.query;
+
+    if (!division)
+      return res.json({ success: false, message: "Missing division" });
+
+    const all = await Attendance.find({ division }).lean();
+
+    if (!all.length)
+      return res.json({
+        success: true,
+        totalLectures: 0,
+        students: [],
+      });
+
+    const totalLectures = all.length;
+
+    const attendedMap = {};
+
+    all.forEach((record) => {
+      record.students.forEach((st) => {
+        if (!attendedMap[st.studentId]) attendedMap[st.studentId] = 0;
+        if (st.status === "present") attendedMap[st.studentId]++;
+      });
+    });
+
+    const studentsArr = Object.keys(attendedMap).map((id) => ({
+      studentId: id,
+      attended: attendedMap[id],
+    }));
+
+    res.json({
+      success: true,
+      totalLectures,
+      students: studentsArr,
+    });
+  } catch (err) {
+    console.error("Summary error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 module.exports = router;

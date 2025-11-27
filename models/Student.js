@@ -33,8 +33,7 @@ const StudentSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    totalPresent: { type: Number, default: 0 },
-    totalLectures: { type: Number, default: 0 },
+    
   },
   { timestamps: true }
 );
