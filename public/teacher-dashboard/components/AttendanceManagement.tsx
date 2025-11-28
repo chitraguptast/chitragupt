@@ -154,6 +154,11 @@ const AttendanceManagement: React.FC<Props> = ({ teacher }) => {
 
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [duplicateLecture, setDuplicateLecture] = useState<number>(1);
+  const viewStudent = (studentId: string) => {
+    window.location.href = `/students-dashboard/index.html?studentId=${studentId}`;
+  };
+
+
 
 
 
@@ -738,6 +743,7 @@ const AttendanceManagement: React.FC<Props> = ({ teacher }) => {
                   <th className="px-4 py-3">Attendance</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-center">Action</th>
+                  <th className="px-4 py-3 text-center">View</th>
                 </tr>
               </thead>
 
@@ -815,6 +821,14 @@ const AttendanceManagement: React.FC<Props> = ({ teacher }) => {
                           Absent
                         </button>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => viewStudent(s._id)}
+                        className="px-3 py-1 rounded bg-blue-100 text-blue-700 text-xs hover:bg-blue-200"
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -925,6 +939,14 @@ const AttendanceManagement: React.FC<Props> = ({ teacher }) => {
                       className="px-3 py-1 rounded bg-red-50 text-red-700 text-sm"
                     >
                       Absent
+                    </button>
+                  </div>
+                  <div className="mt-2">
+                    <button
+                      onClick={() => viewStudent(s._id)}
+                      className="px-3 py-1 rounded bg-blue-100 text-blue-700 text-sm w-full"
+                    >
+                      View Student
                     </button>
                   </div>
                 </div>

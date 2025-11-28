@@ -15,17 +15,29 @@
   background: #fff;
   width: 100%;
   max-width: 520px;
+  max-height: 90vh;      /* <-- IMPORTANT */
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
   animation: fadeIn 0.2s ease-out;
   border: 1px solid #e5e7eb;
+  overflow-y: auto;       /* <-- IMPORTANT */
 }
+
+
+
+
 
 /* Smooth fade */
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Header */
@@ -110,11 +122,11 @@
 .modal-row {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;  /* <-- prevents overflow on mobile */
 }
-
 /* Upload Box */
 .upload-box {
-  height: 90px;
+  height: 50%;
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
   cursor: pointer;
@@ -166,6 +178,7 @@
 .btn-secondary {
   background: #e5e7eb;
   padding: 10px 18px;
+  margin-right: 5%;
   border-radius: 10px;
   border: none;
 }

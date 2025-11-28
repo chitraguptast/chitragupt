@@ -26,7 +26,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-
   const handleTeacherLogin = (teacherData: TeacherProfile) => {
     localStorage.setItem("teacher", JSON.stringify(teacherData));
 
@@ -38,15 +37,12 @@ const App: React.FC = () => {
     }
   };
 
-
-
   const handleLogout = () => {
     localStorage.removeItem("teacher");
     localStorage.removeItem("token");
     setIsAuthenticated(false);
     setTeacherProfile(null);
   };
-
 
   const handleSaveProfile = (updatedProfile: TeacherProfile) => {
     setTeacherProfile(updatedProfile);
@@ -56,7 +52,6 @@ const App: React.FC = () => {
   if (!isAuthenticated || !teacherProfile) {
     return <LoginPage onLoginSuccess={handleTeacherLogin} />;
   }
-
 
   const getTeacherDisplayName = () =>
     [teacherProfile.prefix, teacherProfile.name || teacherProfile.username]

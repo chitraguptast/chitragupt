@@ -31,7 +31,10 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
       <div className="flex items-center space-x-4 mt-4 w-full justify-end md:mt-0 md:w-auto">
-        <button className="hidden sm:flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={() => (window.location.href = "/")}
+          className="hidden sm:flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
           <HomeIcon className="w-5 h-5 text-gray-500" />
           <span>Home</span>
         </button>

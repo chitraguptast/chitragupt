@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import NotesView from "./components/NotesView";
 import UploadModal from "./components/UploadModal";
+import { useSearchParams } from "react-router-dom";
 
 const App: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -15,6 +16,15 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const [searchParams] = useSearchParams();
+
+  // AUTO-OPEN MODAL ON PAGE LOAD IF PARAM PRESENT
+  useEffect(() => {
+    if (searchParams.get("openUpload") === "true") {
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
 
   // ================================
   // LOAD NOTES FROM BACKEND
