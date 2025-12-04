@@ -1,0 +1,207 @@
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 999;
+}
+
+/* Modal Card */
+.modal-card {
+  background: #fff;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;      /* <-- IMPORTANT */
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.2s ease-out;
+  border: 1px solid #e5e7eb;
+  overflow-y: auto;       /* <-- IMPORTANT */
+}
+
+
+
+
+
+/* Smooth fade */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Tabs */
+.modal-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.modal-tabs button {
+  padding-bottom: 6px;
+  font-size: 15px;
+  color: #777;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.modal-tabs button.active {
+  color: #2563eb;
+  font-weight: bold;
+  border-bottom: 2px solid #2563eb;
+}
+
+/* Form */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-field label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  padding: 10px 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.modal-field input:focus,
+.modal-field select:focus,
+.modal-field textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+/* Grid row */
+.modal-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;  /* <-- prevents overflow on mobile */
+}
+/* Upload Box */
+.upload-box {
+  height: 50%;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #f8fafc;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  text-align: center;
+
+  position: relative;
+}
+
+.upload-icon {
+  width: 30px;
+  height: 30px;
+  color: #6b7280;
+}
+
+.upload-box:hover {
+  border-color: #2563eb;
+}
+
+.upload-box input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  padding: 10px 18px;
+  margin-right: 5%;
+  border-radius: 10px;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* Error */
+.error-text {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: -8px;
+}

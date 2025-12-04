@@ -1,0 +1,5 @@
+{
+  "name": "Teacher Dashboard",
+  "description": "A comprehensive dashboard for teachers to manage student attendance and share important notifications with students and parents.",
+  "requestFramePermissions": []
+}
