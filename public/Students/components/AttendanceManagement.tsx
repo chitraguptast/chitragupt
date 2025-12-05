@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { UserPlaceholderIcon, InfoIcon } from "./icons";
+import Datepicker from "react-tailwindcss-datepicker";
+
 
 // ----------------------
 // Types
@@ -59,6 +61,10 @@ const AttendancePieChart: React.FC<{ percentage: number; size?: number }> = ({
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
+  
+
+
+  
 
   return (
     <div
@@ -115,7 +121,19 @@ const AttendanceManagement: React.FC = () => {
     useState<TotalAttendance | null>(null);
   const [subjects, setSubjects] = useState<SubjectAttendance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [absentDates, setAbsentDates] = useState<string[]>([]);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showTotalAbsences, setShowTotalAbsences] = useState(false);
+
+  const [absentDetails, setAbsentDetails] = useState([]);
+  const [totalAbsentDays, setTotalAbsentDays] = useState(0);
+
+  const [dateRange, setDateRange] = useState<any>({
+    startDate: null,
+    endDate: null,
+  });
+
+
+
 
 
   // Fetch dashboard data
@@ -141,7 +159,9 @@ const AttendanceManagement: React.FC = () => {
         setStudent(data.student);
         setTotalAttendance(data.totalAttendance);
         setSubjects(data.subjects);
-        setAbsentDates(data.absentDates || []);
+        setAbsentDetails(data.absentDetails || []);
+        setTotalAbsentDays(data.totalAbsentDays || 0);
+
 
       } catch (err) {
         console.error("❌ Dashboard Fetch Error:", err);
@@ -178,7 +198,7 @@ const AttendanceManagement: React.FC = () => {
       </div>
 
       {/* CARD */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md">
         {/* Top */}
         <div className="p-8 border-b border-gray-100">
           <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8">
@@ -359,26 +379,101 @@ const AttendanceManagement: React.FC = () => {
             </div>
           </div>
           {/* Absent Dates */}
-          <div className="mt-10">
-            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
-              Absent Dates
-              <span className="ml-4 h-px bg-gray-200 flex-grow"></span>
-            </h4>
+          {/* ABSENT HISTORY */}
+          <div className="mt-10 space-y-10">
+            <div className="mt-10 space-y-6">
+              {/* BUTTONS */}
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={() => {
+                    setShowDateFilter(!showDateFilter);
+                    setShowTotalAbsences(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                >
+                  Check Absence by Date Range
+                </button>
 
-            {absentDates.length === 0 ? (
-              <p className="text-gray-500 text-sm">No absent records found.</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {absentDates.map((date) => (
-                  <div
-                    key={date}
-                    className="px-3 py-2 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm text-center"
-                  >
-                    {date}
-                  </div>
-                ))}
+                <button
+                  onClick={() => {
+                    setShowTotalAbsences(!showTotalAbsences);
+                    setShowDateFilter(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700"
+                >
+                  Total Absences Till Now
+                </button>
               </div>
-            )}
+
+              {/* DATE RANGE FILTER */}
+              {showDateFilter && (
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow">
+                  <h5 className="font-semibold mb-3">
+                    Check Absences in Date Range
+                  </h5>
+
+                  <div className="relative w-full overflow-visible">
+                    <Datepicker
+                      value={dateRange}
+                      onChange={(val) => setDateRange(val)}
+                      displayFormat="YYYY-MM-DD"
+                      popoverDirection="down"
+                      inputClassName="w-full"
+                    />
+                  </div>
+
+                  {dateRange?.startDate && dateRange?.endDate && (
+                    <div className="mt-4 space-y-2">
+                      {(() => {
+                        const start = new Date(dateRange.startDate)
+                          .toISOString()
+                          .split("T")[0];
+                        const end = new Date(dateRange.endDate)
+                          .toISOString()
+                          .split("T")[0];
+
+                        return absentDetails
+                          .filter((d) => d.date >= start && d.date <= end)
+                          .map((item) => (
+                            <div
+                              key={item.date + item.subject}
+                              className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+                            >
+                              {item.date} — Missed {item.subject} (Lecture{" "}
+                              {item.lectureNumber})
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TOTAL ABSENCES */}
+              {showTotalAbsences && (
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow">
+                  <h5 className="font-semibold mb-3">
+                    Total Absences Till Now
+                  </h5>
+
+                  <p className="text-gray-700 font-medium mb-3">
+                    Total Days Absent: <b>{totalAbsentDays}</b>
+                  </p>
+
+                  <div className="space-y-2">
+                    {absentDetails.map((item) => (
+                      <div
+                        key={item.date + item.subject}
+                        className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+                      >
+                        {item.date} — Missed {item.subject} (Lecture{" "}
+                        {item.lectureNumber})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

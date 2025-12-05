@@ -21,9 +21,15 @@ router.get("/dashboard", async (req, res) => {
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     // 🔥 FIND ATTENDANCE RECORDS
+    const mongoose = require("mongoose");
+
+    // Convert to ObjectId
+    const studentObjectId = new mongoose.Types.ObjectId(studentId);
+
     const attendanceRecords = await Attendance.find({
-      "students.studentId": studentId,
+      "students.studentId": studentObjectId,
     }).lean();
+
 
     // 🔥 LOG ATTENDANCE COUNT
     console.log("🔥 Attendance records found:", attendanceRecords.length);
@@ -32,7 +38,11 @@ router.get("/dashboard", async (req, res) => {
     let totalLectures = attendanceRecords.length;
 
     attendanceRecords.forEach((rec) => {
-      const entry = rec.students.find((s) => String(s.studentId) === studentId);
+      const entry = rec.students.find(
+        (s) => s.studentId && s.studentId.equals(studentObjectId)
+      );
+
+
       if (entry && entry.status === "present") totalPresent++;
     });
 
@@ -45,7 +55,10 @@ router.get("/dashboard", async (req, res) => {
         subjectMap[subject] = { attended: 0, total: 0 };
       }
 
-      const s = rec.students.find((x) => String(x.studentId) === studentId);
+      const s = rec.students.find(
+        (x) => x.studentId && x.studentId.equals(studentObjectId)
+      );
+
 
       subjectMap[subject].total++;
       if (s?.status === "present") subjectMap[subject].attended++;
@@ -61,15 +74,49 @@ router.get("/dashboard", async (req, res) => {
       };
     });
 
-    const absentDates = attendanceRecords
-      .filter((rec) => {
-        const entry = rec.students.find(
-          (s) => String(s.studentId) === studentId
-        );
-        return entry && entry.status === "absent";
-      })
-      .map((rec) => rec.date);
+    console.log("🔥 Raw attendanceRecords sample:");
+    console.log(attendanceRecords[0]);
 
+    if (attendanceRecords[0]) {
+      console.log("🔥 Students array inside first record:");
+      console.log(attendanceRecords[0].students);
+
+      console.log("🔥 Comparing stored studentIds to the requested one:");
+      attendanceRecords[0].students.forEach((s) => {
+        console.log(
+          " -> stored:",
+          s.studentId,
+          " | matches? ",
+          s.studentId.equals(studentObjectId)
+        );
+      });
+    }
+
+
+    // Build list of absent dates + lectures missed count
+    const absentDetails = attendanceRecords
+      .map((rec) => {
+        const entry = rec.students.find(
+          (s) => s.studentId && s.studentId.equals(studentObjectId)
+        );
+
+        if (!entry) return null;
+        if (entry.status !== "absent") return null;
+
+        return {
+          date: rec.date,
+          subject: rec.subjectName,
+          lectureNumber: rec.lectureNumber,
+        };
+      })
+      .filter(Boolean);
+
+      console.log("🔥 Absent details generated:", absentDetails);
+
+
+
+    // Count total absences
+    const totalAbsentDays = absentDetails.length;
 
     res.json({
       student,
@@ -82,8 +129,10 @@ router.get("/dashboard", async (req, res) => {
             : 0,
       },
       subjects,
-      absentDates,
+      absentDetails, // ⬅️ date + subject
+      totalAbsentDays, // ⬅️ count
     });
+
   } catch (err) {
     console.error("🔥 DASHBOARD ERROR:", err);
     res.status(500).json({ message: "Server error" });
