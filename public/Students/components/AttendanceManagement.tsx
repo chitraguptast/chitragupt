@@ -132,10 +132,17 @@ const AttendanceManagement: React.FC = () => {
     endDate: null,
   });
 
+  const [showPredictor, setShowPredictor] = useState(false);
+  const [predictRange, setPredictRange] = useState<any>({
+    startDate: null,
+    endDate: null,
+  });
 
+  const dateFilterRef = React.useRef<HTMLDivElement>(null);
+  const predictorRef = React.useRef<HTMLDivElement>(null);
 
-
-
+  const dateInputRef = React.useRef<HTMLDivElement>(null);
+  const predictorInputRef = React.useRef<HTMLDivElement>(null);
   // Fetch dashboard data
   useEffect(() => {
     const id = localStorage.getItem("studentId");
@@ -172,6 +179,60 @@ const AttendanceManagement: React.FC = () => {
 
     load();
   }, []);
+
+  useEffect(() => {
+    if (showDateFilter && dateFilterRef.current) {
+      dateFilterRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [showDateFilter]);
+
+  useEffect(() => {
+    if (showPredictor && predictorRef.current) {
+      predictorRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [showPredictor]);
+
+  useEffect(() => {
+    if (!dateInputRef.current) return;
+
+    const handler = () => {
+      if (dateFilterRef.current) {
+        dateFilterRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    };
+
+    dateInputRef.current.addEventListener("click", handler);
+    return () => dateInputRef.current?.removeEventListener("click", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!predictorInputRef.current) return;
+
+    const handler = () => {
+      if (predictorRef.current) {
+        predictorRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    };
+
+    predictorInputRef.current.addEventListener("click", handler);
+    return () =>
+      predictorInputRef.current?.removeEventListener("click", handler);
+  }, []);
+
+
+
 
 
   if (loading || !student || !totalAttendance)
@@ -264,7 +325,7 @@ const AttendanceManagement: React.FC = () => {
                 size={100}
               />
               <div className="mt-2 text-xs text-gray-500">
-                {totalAttendance.present} / {totalAttendance.lectures} Days
+                {totalAttendance.present} / {totalAttendance.lectures} Lecture
               </div>
             </div>
           </div>
@@ -403,23 +464,38 @@ const AttendanceManagement: React.FC = () => {
                 >
                   Total Absences Till Now
                 </button>
+                <button
+                  onClick={() => {
+                    setShowPredictor(!showPredictor);
+                    setShowDateFilter(false);
+                    setShowTotalAbsences(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-orange-600 text-white font-semibold hover:bg-orange-700"
+                >
+                  Absent Percentage Predictor
+                </button>
               </div>
 
               {/* DATE RANGE FILTER */}
               {showDateFilter && (
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow">
+                <div
+                  ref={dateFilterRef}
+                  className="bg-white p-5 rounded-xl border border-gray-200 shadow"
+                >
                   <h5 className="font-semibold mb-3">
                     Check Absences in Date Range
                   </h5>
 
-                  <div className="relative w-full overflow-visible">
-                    <Datepicker
-                      value={dateRange}
-                      onChange={(val) => setDateRange(val)}
-                      displayFormat="YYYY-MM-DD"
-                      popoverDirection="down"
-                      inputClassName="w-full"
-                    />
+                  <div className="relative" ref={dateInputRef}>
+                    <div className="sticky top-0 z-50 bg-white">
+                      <Datepicker
+                        value={dateRange}
+                        onChange={(val) => setDateRange(val)}
+                        displayFormat="YYYY-MM-DD"
+                        popoverDirection="down"
+                        inputClassName="w-full"
+                      />
+                    </div>
                   </div>
 
                   {dateRange?.startDate && dateRange?.endDate && (
@@ -449,6 +525,87 @@ const AttendanceManagement: React.FC = () => {
                 </div>
               )}
 
+              {showPredictor && (
+                <div
+                  ref={predictorRef}
+                  className="bg-white p-5 rounded-xl border border-gray-200 shadow"
+                >
+                  <h5 className="font-semibold mb-3">
+                    Absent Percentage Predictor (Approx.)
+                  </h5>
+
+                  <div className="relative" ref={predictorInputRef}>
+                    <div className="sticky top-0 z-50 bg-white">
+                      <Datepicker
+                        value={predictRange}
+                        onChange={(val) => setPredictRange(val)}
+                        displayFormat="YYYY-MM-DD"
+                        popoverDirection="down"
+                        inputClassName="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {predictRange?.startDate &&
+                    predictRange?.endDate &&
+                    (() => {
+                      const start = new Date(predictRange.startDate);
+                      const end = new Date(predictRange.endDate);
+
+                      let days = 0;
+                      const cur = new Date(start);
+
+                      while (cur <= end) {
+                        const day = cur.getDay();
+                        if (day >= 1 && day <= 5) days++; // Mon–Fri
+                        cur.setDate(cur.getDate() + 1);
+                      }
+
+                      const lecturesMissed = days * 6;
+
+                      const currentPresent = totalAttendance.present;
+                      const currentTotal = totalAttendance.lectures;
+
+                      const newTotalLectures = currentTotal + lecturesMissed;
+                      const newPercentage = (
+                        (currentPresent / newTotalLectures) *
+                        100
+                      ).toFixed(2);
+
+                      return (
+                        <div className="mt-4 space-y-2">
+                          {/* Total lectures till now */}
+                          <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-800 text-sm">
+                            Lectures happened till now: <b>{currentTotal}</b>
+                          </div>
+
+                          {/* Lectures that will be missed */}
+                          <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
+                            Lectures you will miss: <b>{lecturesMissed}</b>
+                          </div>
+
+                          {/* New total after missing */}
+                          <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-sm">
+                            New total lectures: <b>{newTotalLectures}</b>
+                          </div>
+
+                          {/* New attendance percentage */}
+                          <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm">
+                            Your attendance after missing these lectures will
+                            be: <b>{newPercentage}%</b>
+                          </div>
+
+                          {/* Disclaimer */}
+                          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 text-xs">
+                            *This percentage is approximate and may vary based
+                            on actual timetable.*
+                          </div>
+                        </div>
+                      );
+                    })()}
+                </div>
+              )}
+
               {/* TOTAL ABSENCES */}
               {showTotalAbsences && (
                 <div className="bg-white p-5 rounded-xl border border-gray-200 shadow">
@@ -473,6 +630,56 @@ const AttendanceManagement: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+            <div className="mt-14 mb-20 text-center text-gray-600 text-sm leading-relaxed px-4">
+              <p className="italic">
+                Attendance isn’t everything… but your HOD definitely thinks it
+                is. 😄
+              </p>
+
+              <p className="mt-3">
+                Below 75%? Relax. You're not “short of attendance”, you're just
+                “creatively exploring freedom”.
+              </p>
+
+              <p className="mt-3">
+                But hey — even Google takes attendance now. Don’t risk it. 👀
+              </p>
+
+              <p className="mt-3 font-semibold text-gray-700">
+                Study smart, attend smarter, and may your proxy game stay
+                undetected. 😉
+              </p>
+
+              <p className="mt-4 text-xs text-gray-400">
+                (This dashboard does not support excuses like “dog ate my
+                timetable”.)
+              </p>
+              <p className="mt-4">
+                Attendance tip of the day: If your percentage starts looking
+                like a mobile battery icon, it’s time to plug yourself into
+                class. 🔋📚
+              </p>
+
+              <p className="mt-3">
+                Remember: The fewer lectures you attend, the stronger your heart
+                becomes… because every announcement feels like a jump scare.
+                💀😂
+              </p>
+
+              <p className="mt-3">
+                And if you're still reading this section, congrats — you have
+                more dedication than half the classroom. 🏆
+              </p>
+
+              <p className="mt-3 font-medium text-gray-700">
+                May your attendance rise faster than your syllabus backlog. 🚀
+              </p>
+
+              <p className="mt-4 text-xs text-gray-400">
+                (If you reach 100% attendance, please seek medical attention.
+                Something is wrong.)
+              </p>
             </div>
           </div>
         </div>
