@@ -1,0 +1,113 @@
+body {
+  background-image: url("image.jpg");
+  font-family: "roboto";
+}
+.prof-container {
+  background-color: white;
+  width: 800px;
+  height: 500px;
+  margin: auto;
+  margin-top: 6%;
+  border-radius: 25px;
+  text-align: center;
+}
+h2 {
+  color: #808bff;
+  padding-top: 40px;
+}
+.prof-head {
+  color: rgba(189, 187, 187, 0.751);
+}
+.com {
+  margin-top: -15px;
+  font-size: smaller;
+  margin-bottom: 40px;
+}
+
+.prof-account {
+  color: rgba(189, 187, 187, 0.751);
+  border-radius: 50px;
+  background-color: white;
+  text-align: center;
+  padding: 10px 95px;
+  box-shadow: 5px 5px rgba(0, 0, 0, 0.03);
+  border: 1px;
+  border-color: rgba(0, 0, 0, 0.039);
+  border-style: solid;
+}
+.prof-account:hover {
+  cursor: pointer;
+}
+
+.prof-logo {
+  width: 20px;
+  height: 20px;
+  margin-bottom: -4px;
+  margin-right: 55px;
+  margin-left: -85px;
+  filter: grayscale(1) opacity(1);
+}
+.prof-text {
+  color: #808bffc7;
+  font-size: 14px;
+  word-spacing: 1px;
+}
+.or {
+  margin-top: 15px;
+  font-size: small;
+  margin-bottom: 50px;
+}
+
+.prof-login {
+  color: rgba(189, 187, 187, 0.751);
+  text-align: left;
+  margin-left: 250px;
+  margin-right: 250px;
+  font-size: small;
+  margin-top: -30px;
+}
+.email {
+  border-color: transparent;
+}
+
+input:focus {
+  border-color: transparent;
+  outline: none;
+  width: 100%;
+}
+.pass {
+  margin-left: 3px;
+  padding: -10px;
+  background-color: transparent;
+  margin-bottom: 3px;
+}
+.password {
+  border-color: transparent;
+}
+
+button {
+  background-image: linear-gradient(to right, #b1b7f7, #4b59f4);
+  border-radius: 1000px;
+  font-size: 14px;
+  padding-left: 130px;
+  padding-right: 130px;
+  padding-top: 13px;
+  padding-bottom: 13px;
+  color: white;
+  border-color: transparent;
+  outline: none;
+  overflow: hidden;
+  border: none;
+}
+button:hover {
+  cursor: pointer;
+}
+footer {
+  color: rgba(189, 187, 187, 0.751);
+}
+span {
+  color: #808bff;
+}
+span:hover {
+  cursor: pointer;
+}

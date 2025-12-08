@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      @keyframes fade-in-down {
+        0% {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-down {
+        animation: fade-in-down 0.2s ease-out;
+      }
+      /* Force react-tailwindcss-datepicker calendar white theme */
+/* force popover panel white */
+.rtdp-panel-wrapper {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* calendar header */
+.rtdp-header {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* days grid */
+.rtdp-calendar {
+  background-color: #ffffff !important;
+}
+
+/* each day cell */
+.rtdp-day {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+.rtdp-day:hover {
+  background-color: #eff6ff !important;
+}
+
+/* selected date */
+.rtdp-day-selected {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* month navigation arrows */
+.rtdp-month-button svg {
+  stroke: #374151 !important;
+}
+
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
